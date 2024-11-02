@@ -24,6 +24,9 @@ class ViewController: UIViewController {
     var captureDevice: AVCaptureDevice?
     var captureDeviceResolution: CGSize = CGSize()
     
+    private var baselineLeftEyebrowDistance: CGFloat?
+    private var baselineRightEyebrowDistance: CGFloat?
+    
     // Layer UI for drawing Vision results
     var rootLayer: CALayer?
     var detectionOverlayLayer: CALayer?
@@ -322,23 +325,58 @@ class ViewController: UIViewController {
     
     // Interpret the output of our facial landmark detector
     // this code is called upon succesful completion of landmark detection
-    func landmarksCompletionHandler(request:VNRequest, error:Error?){
-        
+    func landmarksCompletionHandler(request: VNRequest, error: Error?) {
         if error != nil {
             print("FaceLandmarks error: \(String(describing: error)).")
+            return
         }
         
-        // any landmarks found that we can display? If not, return
         guard let landmarksRequest = request as? VNDetectFaceLandmarksRequest,
               let results = landmarksRequest.results as? [VNFaceObservation] else {
             return
         }
         
-        // Perform all UI updates (drawing) on the main queue, not the background queue on which this handler is being called.
         DispatchQueue.main.async {
-            // draw the landmarks using core animation layers
             self.drawFaceObservations(results)
+            
+            for faceObservation in results {
+                if let landmarks = faceObservation.landmarks {
+                    // Get landmarks for eyebrows and eyes
+                    if let leftEyebrow = landmarks.leftEyebrow, let leftEye = landmarks.leftEye,
+                       let rightEyebrow = landmarks.rightEyebrow, let rightEye = landmarks.rightEye {
+                        
+                        // Calculate the current vertical distance between each eyebrow and the corresponding eye
+                        let leftEyeCenter = self.averagePoint(in: leftEye)
+                        let leftEyebrowCenter = self.averagePoint(in: leftEyebrow)
+                        let rightEyeCenter = self.averagePoint(in: rightEye)
+                        let rightEyebrowCenter = self.averagePoint(in: rightEyebrow)
+                        
+                        let currentLeftEyebrowDistance = leftEyebrowCenter.y - leftEyeCenter.y
+                        let currentRightEyebrowDistance = rightEyebrowCenter.y - rightEyeCenter.y
+                        
+                        // Set baseline distances if not set
+                        if self.baselineLeftEyebrowDistance == nil || self.baselineRightEyebrowDistance == nil {
+                            self.baselineLeftEyebrowDistance = currentLeftEyebrowDistance
+                            self.baselineRightEyebrowDistance = currentRightEyebrowDistance
+                        }
+                        
+                        // Check if the eyebrow distance exceeds baseline by a certain factor
+                        let raiseThreshold: CGFloat = 1.25
+                        if currentLeftEyebrowDistance > self.baselineLeftEyebrowDistance! * raiseThreshold &&
+                            currentRightEyebrowDistance > self.baselineRightEyebrowDistance! * raiseThreshold {
+                            print("Eyebrows are raised!")
+                        }
+                    }
+                }
+            }
         }
+    }
+    
+    func averagePoint(in landmarkRegion: VNFaceLandmarkRegion2D) -> CGPoint {
+        let points = landmarkRegion.normalizedPoints
+        let avgX = points.map { $0.x }.reduce(0, +) / CGFloat(points.count)
+        let avgY = points.map { $0.y }.reduce(0, +) / CGFloat(points.count)
+        return CGPoint(x: avgX, y: avgY)
     }
     
     
