@@ -361,7 +361,7 @@ class ViewController: UIViewController {
                         }
                         
                         // Check if the eyebrow distance exceeds baseline by a certain factor
-                        let raiseThreshold: CGFloat = 1.25
+                        let raiseThreshold: CGFloat = 1.15
                         if currentLeftEyebrowDistance > self.baselineLeftEyebrowDistance! * raiseThreshold &&
                             currentRightEyebrowDistance > self.baselineRightEyebrowDistance! * raiseThreshold {
                             print("Eyebrows are raised!")
