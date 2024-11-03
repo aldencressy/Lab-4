@@ -365,6 +365,9 @@ class ViewController: UIViewController {
                         if currentLeftEyebrowDistance > self.baselineLeftEyebrowDistance! * raiseThreshold &&
                             currentRightEyebrowDistance > self.baselineRightEyebrowDistance! * raiseThreshold {
                             print("Eyebrows are raised!")
+                            self.detectedFaceLandmarksShapeLayer?.strokeColor = UIColor.red.cgColor
+                        } else {
+                            self.detectedFaceLandmarksShapeLayer?.strokeColor = UIColor.yellow.cgColor  // Reset color
                         }
                     }
                 }
